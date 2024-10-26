@@ -1,0 +1,114 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <queue>
+#include <unordered_set>
+#include <cmath>
+
+using namespace std;
+
+// 定义节点结构体
+struct Node {
+    pair<int, int> position;  // 节点的位置
+    int g;                    // 从起点到当前节点的实际成本
+    int h;                    // 从当前节点到目标节点的启发式估计成本
+    int f;                    // 总成本
+
+    Node(pair<int, int> pos, int gCost, int hCost) : position(pos), g(gCost), h(hCost) {
+        f = g + h;
+    }
+};
+
+// 优先队列比较节点
+struct CompareNode {
+    bool operator()(const Node& a, const Node& b) {
+        return a.f > b.f;  // 小的f值优先
+    }
+};
+
+// 曼哈顿距离计算
+int manhattan_distance(pair<int, int> a, pair<int, int> b) {
+    return abs(a.first - b.first) + abs(a.second - b.second);
+}
+
+// A*搜索算法实现
+vector<pair<int, int>> a_star_search(pair<int, int> start, pair<int, int> goal, const vector<vector<int>>& grid) {
+    priority_queue<Node, vector<Node>, CompareNode> openList;
+    unordered_set<string> closedList;  // 用于存储已扩展的节点
+
+    openList.emplace(start, 0, manhattan_distance(start, goal));
+
+    // 移动方向
+    vector<pair<int, int>> directions = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
+
+    while (!openList.empty()) {
+        Node current = openList.top();
+        openList.pop();
+
+        // 如果到达目标
+        if (current.position == goal) {
+            vector<pair<int, int>> path;
+            path.push_back(current.position);
+            return path;  // 简化返回
+        }
+
+        // 将当前节点添加到封闭列表
+        string posStr = to_string(current.position.first) + "," + to_string(current.position.second);
+        closedList.insert(posStr);
+
+        // 扩展邻居
+        for (const auto& dir : directions) {
+            pair<int, int> neighbor = { current.position.first + dir.first, current.position.second + dir.second };
+
+            // 检查邻居是否在边界内
+            if (neighbor.first >= 0 && neighbor.first < grid.size() &&
+                neighbor.second >= 0 && neighbor.second < grid[0].size() &&
+                grid[neighbor.first][neighbor.second] == 0) {
+
+                // 检查是否在封闭列表中
+                string neighborStr = to_string(neighbor.first) + "," + to_string(neighbor.second);
+                if (closedList.find(neighborStr) != closedList.end()) {
+                    continue;  // 跳过已扩展的节点
+                }
+
+                int gCost = current.g + 1;  // 每一步成本为1
+                int hCost = manhattan_distance(neighbor, goal);
+                Node neighborNode(neighbor, gCost, hCost);
+
+                // 将邻居加入开放列表
+                openList.emplace(neighborNode);
+            }
+        }
+    }
+
+    return {};  // 如果没有找到路径，返回空路径
+}
+
+// 主程序
+int main() {
+    vector<vector<int>> grid = {
+        {0, 0, 0, 0, 0},
+        {0, 1, 1, 1, 0},
+        {0, 0, 0, 0, 0},
+        {0, 1, 1, 0, 0},
+        {0, 0, 0, 0, 0}
+    };
+
+    pair<int, int> start = { 0, 0 };
+    pair<int, int> goal = { 4, 4 };
+
+    vector<pair<int, int>> path = a_star_search(start, goal, grid);
+
+    if (!path.empty()) {
+        cout << "找到最短路径: ";
+        for (const auto& pos : path) {
+            cout << "(" << pos.first << ", " << pos.second << ") ";
+        }
+        cout << endl;
+    }
+    else {
+        cout << "未找到路径" << endl;
+    }
+
+    return 0;
+}
